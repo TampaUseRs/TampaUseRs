@@ -1,0 +1,86 @@
+\documentclass{beamer}
+
+% reduce size of title
+\setbeamerfont{frametitle}{size=\normalsize}
+
+% make a command for gray sub-items and continued subitems
+\newcommand{\si}[1]{\hspace{.5cm} \textcolor{gray} {#1}\\}
+\newcommand{\sicont}[1]{\hspace{1cm} \textcolor{gray} {#1}\\}
+
+% permit absolute textblock positioning
+\usepackage[absolute,overlay]{textpos}
+
+%remove navigation symbols
+\setbeamertemplate{navigation symbols}{}
+
+\begin{document}
+
+%% Title Page
+\begin{frame}
+\vspace{4cm}
+\begin{center}
+\normalsize{Tampa R Users Group}\\
+\normalsize{10/17/2017: Inaugural Meetup!}\\
+\vspace{.2cm}~
+\vspace{1cm}
+\end{center}
+
+\vspace{.2cm}
+\begin{flushright}
+\scriptsize{Travis Gerke, ScD}\\
+\tiny{Organizer}\\
+\tiny{travisgerke@gmail.com}\\
+\includegraphics[scale=.02, trim=0 1cm 0 3.5cm, clip]{figures/Twitter_Logo_Blue.png}\tiny{\href{https://twitter.com/travisgerke}{@travisgerke}}\\
+\vspace{.11cm}
+\end{flushright}
+
+\begin{textblock}{6}(0.3,12.7)
+\scriptsize{
+\begin{table}[h]
+\centering
+\begin{tabular}{l}
+Web: \href{https://www.meetup.com/Tampa-R-Users-Group/}{meetup.com/Tampa-R-Users-Group/}\\
+Github: \href{https://github.com/tgerke/TampaUseRs}{github.com/tgerke/TampaUseRs}\\
+Twitter: \href{https://twitter.com/usertampa}{@UseRTampa}\\
+\end{tabular}
+\end{table}
+}
+\end{textblock}
+
+\begin{textblock}{6}(12,1)
+\tiny{~~~~~~~~~Sponsored by:}\\
+\includegraphics[width=2.2cm, trim=0 0 0 0]{figures/RConsortium_Horizontal_Pantone.png}
+\end{textblock}
+
+\end{frame}
+
+\small{
+
+\begin{frame}[t]
+\frametitle{Today}
+No formal presentation\\
+\si{Make sure the beer is cold, meet, geek out}
+\vspace{.2cm}
+To discuss: \\
+\si{Meeting day/time: 4$^{th}$ Tuesday of each month? 7pm?}
+\si{Proposed topics from the survey in order of popularity:}
+\sicont{---~Web scraping}
+\sicont{---~Big data handling (1 volunteer for dplyr)}
+\sicont{---~Machine learning/data mining (1 volunteer for PCA)}
+\sicont{---~Shiny apps (1 volunteer)}
+\sicont{---~ggplot2}
+\sicont{---~R markdown (1 volunteer)}
+\si{Volunteers at ALL levels of expertise are absolutely welcome}
+\vspace{.2cm}
+Some thoughts: \\
+\si{Connecting via Twitter/LinkedIn/other could be useful to us all}
+\sicont{(I'm thinking job postings, community troubleshooting)}
+\si{Let's please use the discussion board on Meetup!}
+\sicont{Or is there another suggestion (e.g. Slack)?}
+\begin{center}
+%\includegraphics[scale=.6, trim=0 0 0 0]{figures/blank.png}
+\end{center}
+\end{frame}
+
+}
+\end{document}
