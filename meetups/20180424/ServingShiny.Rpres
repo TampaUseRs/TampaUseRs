@@ -1,0 +1,156 @@
+Serving Shiny
+========================================================
+author: Kris Kindle
+date: 4/24/2018
+autosize: true
+
+<style>
+body {
+    overflow: scroll;
+}
+</style>
+
+Serve Shiny from Your Sever
+========================================================
+
+Why Would We?
+
+- Not restricted to any particular provider
+- Finer control of our application
+- More options availables
+
+What Do We Need?
+========================================================
+
+- VPS
+- Proxy Server
+- Domain Name
+
+Options for VPS
+========================================================
+
+- AWS
+- Azure
+- Digital Ocean
+
+Server Options
+========================================================
+Either of the two will work for our purpose. Apache requires a bit more configuring to get going. We will cover the use of Nginx.
+- Nginx 
+- Apache
+
+What We Will Cover
+========================================================
+
+- Sign-In to AWS and configure an Ubuntu instance
+- Configure Nginx on our Ubuntu instance
+- How to check logs
+- Configure load balancing 
+
+Configuring an EC2 Instance
+========================================================
+- Access your EC2 instance (It is recommended that you add a password to the account)
+```{r, engine = 'bash', eval = FALSE}
+ssh -i route/to/pemFile ubuntu@publicIPv4
+```
+- Install Nginx and R
+```{r, engine = 'bash', eval = FALSE}
+sudo apt-get update && apt-get install Nginx
+
+# Once R is installed use the R CLI to install the libraries that you need
+# Hint: For this exercise you will at least need to install Shiny
+sudo apt-get install r-base
+
+```
+
+Configuring Nginx
+========================================================
+The Nginx configuration file is composed of contexts and directives. We will add some directives to the HTTP and Server context to cinfigure our server.
+- On Ubuntu configuration files can be found at
+```{r, engine = 'bash', eval = FALSE}
+/etc/nginx/nginx.conf
+```
+
+Configuring Nginx (Cont.)
+========================================================
+We will add the following under the main context in the configuration file to define our server. (Taken from the Configure Nginx with Shiny link on the Links page)
+```{r, engine = 'bash', eval = FALSE}
+http {
+
+  map $http_upgrade $connection_upgrade {
+      default upgrade;
+      ''      close;
+    }
+server {
+  listen 80;
+  
+  location / {
+      # Which requests to handle with this server
+      server_name yourDomainName.com www.yourDomainName.com;
+      # This is the default port that Shiny Server uses
+      proxy_pass http://localhost:3838;
+      proxy_redirect http://localhost:3838/ $scheme://$host/;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_read_timeout 20d;
+      proxy_buffering off;
+  }
+}
+
+```
+
+Configuring Nginx (Cont.)
+========================================================
+To use Nginx as a load balancer we add the following upstream context, and change the proxy_pass directive.
+```{r, engine = 'bash', eval = FALSE}
+upstream app_example {
+    # How it decides which three to serve to requester
+    # This method passes to the user the least connected of the options
+    least_conn;
+    # These are three server instances running on the same host
+    # To use different machines you need to use its public IP
+    server 127.0.0.1:9000;
+    server 127.0.0.1:9001;      
+    server 127.0.0.1:9002;      
+}
+
+server {
+  listen 80;
+  
+  location / {
+      # Which requests to handle with this server
+      server_name yourDomainName.com www.yourDomainName.com;
+      # Changed to have it pass to the upstream context
+      proxy_pass http://app_example/;
+      proxy_redirect off;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_read_timeout 20d;
+      proxy_buffering off;
+  }
+}
+
+```
+
+Putting it All Together
+========================================================
+Now that we have Nginx configured we just to strart/restart the service and start our Shiny app running.
+
+```{r, engine = 'bash', eval = FALSE}
+sudo sevice Nginx restart
+
+# Keep the Shiny app running in the background
+nohup Rscript -e "shiny::runAPP(port = 5050)
+```
+
+Links
+========================================================
+<a href="https://www.digitalocean.com/community/tutorials/understanding-the-nginx-configuration-file-structure-and-configuration-contexts">Nginx Configuration</a>
+
+<a href="https://support.rstudio.com/hc/en-us/articles/213733868-Running-Shiny-Server-with-a-Proxy">Configure Nginx with Shiny</a>
+
+<a href="https://serversforhackers.com/c/using-nginx-as-a-load-balancer">Load Balancing with Nginx</a>
+
+
