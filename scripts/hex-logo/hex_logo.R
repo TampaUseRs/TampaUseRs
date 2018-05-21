@@ -17,10 +17,10 @@ r_grey_exlight <- rgb(250, 250, 255, max = 255)
 r_blue         <- rgb(23,   93, 171, max = 255)
 
 # ---- Set Hex Sticker Parameters ----
-fill_color    <- r_blue
-border_color  <- r_grey
+fill_color    <- "#4c98d1"
+border_color  <- r_blue
 name_color    <- r_grey_exlight
-twitter_color <- r_grey_light
+twitter_color <- "grey80"
 
 # ---- Set base sticker defaults ----
 sticker_fun <- function(...) {
@@ -34,20 +34,21 @@ sticker_fun <- function(...) {
 }
 
 make_sticker <- sticker_fun(
-  subplot = "rrr_logo.png", 
-  package = "Tampa Bay", 
+  subplot = "rrr_logo.png",
+  package = "Tampa Bay",
   s_x = 0.96,
   s_y = 1 + 0.05,
   s_width = 0.7,
   h_color = border_color,
   h_fill = fill_color,
   p_color = name_color,
-  p_x = 0.99,
+  p_x = 1,
   p_y = 0.6 + 0.05,
   p_size = 7.5,
   p_family = "Trade Winds",
   u_color = twitter_color,
-  u_family = "Stint Ultra Expanded"
+  u_family = "Stint Ultra Expanded",
+  u_size = 1.8
 )
 
 # ---- Fancy TRUG Hex Stickers! ----
