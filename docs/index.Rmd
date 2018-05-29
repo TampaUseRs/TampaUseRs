@@ -46,6 +46,13 @@ Welcome to the online home of the Tampa Users R Group!
 
 - [&commat;UseRTampa on Twitter][twitter]
 
+### Discussion Board
+
+We have a [discussion board][discussion-board] available on GitHub for R-related questions, posts, discussions and announcements.
+
+To join, request access to GitHub [TampaUseRs organization][github] by sending your GitHub username to [&commat;UseRTampa on Twitter][twitter] or the TampaUseRs organizers via [Meetup][meetup].
+The [discussion board][discussion-board] is under Teams > Everyone > Discussion.
+
 ## Upcoming Meetups
 
 ```{r get-upcoming, include=FALSE}
