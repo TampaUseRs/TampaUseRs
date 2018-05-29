@@ -87,7 +87,7 @@ event_to_html <- function(x) {
   
   tagList(
     h3(x$name),
-    h4(strftime(paste(x$local_date, x$local_time), "%A, %b %d, %Y at %H:%M%P")),
+    h4(strftime(paste(x$local_date, x$local_time), "%A, %b %d, %Y at %I:%M%P")),
     p(
       HTML(paste(
         '<table id="meta"><tbody>', 
