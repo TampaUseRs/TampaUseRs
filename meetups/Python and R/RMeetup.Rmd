@@ -1,0 +1,106 @@
+---
+title: "RMeetup"
+author: "Mahdi Goudarzi"
+date: "May 29, 2018"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=TRUE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## my meetup
+```{r setup , include=TRUE}
+#use_python(path_to_python)
+knitr::knit_engines$set(python = reticulate::eng_python)
+library(reticulate)
+use_python('C:\\Python27')
+```
+
+```{python}
+import numpy as np
+import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+meow = np.array([[-1,1,1],[1,1,-1],[1,1,1]])
+print(meow)
+
+#sns <- import('seaborn')
+#sns.barplot(x="sex", y="survived", hue="class", data=titanic);
+```
+```{python}
+from numpy import linalg
+woof=linalg.inv(meow)
+print(woof)
+```
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+phi = np.arange(0,3*np.pi,0.0025)
+x=np.cos(5*phi)
+y=np.sin(3*phi)
+plt.plot(x,y)
+plt.show()
+```
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
+X = np.arange(-5, 5, 0.25)
+Y = np.arange(-5, 5, 0.25)
+X, Y = np.meshgrid(X, Y)
+R = np.sqrt(X**2 + Y**2)
+Z = np.sin(R)
+fig = plt.figure()
+ax = Axes3D(fig)
+ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.viridis)
+plt.show()
+```
+```{pyhton}
+def add(x,y):
+  return x+y
+```
+#Sourcing Scripts
+```{r}
+source_python('add.py')
+add(5,10)
+```
+
+```{r}
+library(data.table)
+library(curl)
+mydat <- fread('https://raw.githubusercontent.com/ismayc/pnwflights14/master/data/flights.csv')
+write.csv(mydat,file="MyData.csv")
+head(mydat)
+source_python('flights.py')
+flights<-read_flights("MyData.csv")
+head(flights)
+```
+
+#```{r}
+#repl_python()
+#```
