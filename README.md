@@ -19,5 +19,6 @@ a repository for slides, code, and other materials for the Tampa R Users Group
 <img src="https://www.r-consortium.org/wp-content/uploads/sites/13/2016/09/RConsortium_Horizontal_Pantone.png" width="200px">
 </a>
 
-Please note that we follow the [Contributor Code of Conduct](CODE_OF_CONDUCT.md).
-By participating in the Tampa R Users Group you agree to abide by its terms.
+<br>
+Please note that we follow the [Contributor Code of Conduct](CODE_OF_CONDUCT.md) and the [R Consortium Community Code of Conduct](https://wiki.r-consortium.org/view/R_Consortium_and_the_R_Community_Code_of_Conduct).
+By participating in the Tampa R Users Group you agree to abide by their terms.
