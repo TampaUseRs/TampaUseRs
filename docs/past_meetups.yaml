@@ -1,17 +1,17 @@
 - date: 2017-10-17
   presenter: Travis Gerke
   topic: Inaugural Tampa R Users Meetup!
-  link: https://github.com/TampaUseRs/TampaUseRs/blob/master/meetups/20171017/slides.pdf
+  link: https://github.com/TampaUseRs/TampaUseRs/tree/master/meetups/20171017-inagural
 
 - date: 2017-11-28
   presenter: Josh Levy
   topic: Using dplyr!
-  link: https://github.com/TampaUseRs/TampaUseRs/tree/master/meetups/20171128 
+  link: https://github.com/TampaUseRs/TampaUseRs/tree/master/meetups/20171128-dplyr
 
 - date: 2018-01-23
   presenter: Garrick Aden-Buie
   topic: A Gentle Guide to the Grammar of Graphics with ggplot2
-  link: https://www.garrickadenbuie.com/talk/trug-ggplot2/
+  link: https://github.com/gadenbuie/trug-ggplot2
 
 - date: 2018-02-37
   presenter: Mark Dayton
@@ -26,4 +26,4 @@
 - date: 2018-04-24
   presenter: Kris Kindle
   topic: Shiny Server
-  link: https://github.com/TampaUseRs/TampaUseRs/tree/master/meetups/20180424
+  link: https://github.com/TampaUseRs/TampaUseRs/tree/master/meetups/20180424-shiny-server
