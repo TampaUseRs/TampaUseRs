@@ -5,7 +5,7 @@
 
 a repository for slides, code, and other materials for the Tampa R Users Group
 
-[![](scripts/hex-logo/trug-hex-twitter.png)][meetup]
+[![](blob/hex-logo-alt/assets/hex-logo/trug-hex-800.png)][meetup]
 
 ## TampaUseRs Links
 
