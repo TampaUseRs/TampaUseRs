@@ -12,7 +12,7 @@ INTRODUCTION
 if (User@Use_R) User@Intelligence = "Smart" else User@Intelligence = "Unknown"
 ```
 - Machine Learning example: 
- - $log{\frac{p}{1-p}} = \beta_{0} + \beta_{1}*UseR$
+ - log(p/(1-p)) = beta0 + beta1*UseR
 ```{r, eval = FALSE}
 # Given data, estimate beta0, beta1
 # probability of being Smart:
@@ -40,7 +40,7 @@ Supervise Learning - Classification 1
 ======================================================
 
 **Example**: Letter recognition from images, [link to description](https://archive.ics.uci.edu/ml/machine-learning-databases/letter-recognition/letter-recognition.names)
-- Black/white images $\rightarrow$ 16 numerical attributes
+- Black/white images -> 16 numerical attributes
 - Goal: predict letter from images
 - get data:
 <font size = "6">
@@ -75,7 +75,7 @@ ggplotly(visual$Plot) -> Plot1
 ```
 </font>
 ```{r, echo = FALSE}
-htmlwidgets::saveWidget(as.widget(Plot1), file = "Plot1.html")
+htmlwidgets::saveWidget(as.widget(Plot1), file = "6.19.2018-figure/Plot1.html")
 ```
 Supervise Learning - Classification 3 (cont)
 ======================================
@@ -250,7 +250,7 @@ library(MToolBox)
 Plot2 <- Plot.VisualizeSupervise(cluster ~ ., data = KMEAN_result)$Plot
 ```
 ```{r, echo = FALSE}
-htmlwidgets::saveWidget(as.widget(Plot2), file = "Plot2.html")
+htmlwidgets::saveWidget(as.widget(Plot2), file = "6.19.2018-figure/Plot2.html")
 ```
 <iframe src="Plot2.html" style="position:absolute;height:100%;width:100%"></iframe>
 
