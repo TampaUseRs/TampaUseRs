@@ -1,0 +1,109 @@
+\documentclass{beamer}
+
+% reduce size of title
+\setbeamerfont{frametitle}{size=\normalsize}
+
+% make a command for gray sub-items and continued subitems
+\newcommand{\si}[1]{\hspace{.5cm} \textcolor{gray} {#1}\\}
+\newcommand{\sicont}[1]{\hspace{1cm} \textcolor{gray} {#1}\\}
+
+% permit absolute textblock positioning
+\usepackage[absolute,overlay]{textpos}
+
+%remove navigation symbols
+\setbeamertemplate{navigation symbols}{}
+
+\begin{document}
+
+%% Title Page
+\begin{frame}
+\vspace{4cm}
+\begin{center}
+\normalsize{Tampa R Users Group}\\
+\normalsize{06/19/2018: Group announcements}\\
+\vspace{.2cm}~
+\vspace{1cm}
+\end{center}
+
+\vspace{.2cm}
+\begin{flushright}
+\scriptsize{Travis Gerke, ScD}\\
+\tiny{Organizer}\\
+\tiny{travisgerke@gmail.com}\\
+\includegraphics[scale=.02, trim=0 1cm 0 3.5cm, clip]{figures/Twitter_Logo_Blue.png}\tiny{\href{https://twitter.com/travisgerke}{@travisgerke}}\\
+\vspace{.11cm}
+\end{flushright}
+
+\begin{textblock}{6}(0.3,12.7)
+\scriptsize{
+\begin{table}[h]
+\centering
+\begin{tabular}{l}
+Meetup: \href{https://meetup.com/Tampa-R-Users-Group/}{https://meetup.com/Tampa-R-Users-Group/}\\
+Web/GitHub: \href{https://tampausers.github.io/}{https://tampausers.github.io/}\\
+Twitter: \href{https://twitter.com/usertampa}{@UseRTampa}\\
+\end{tabular}
+\end{table}
+}
+\end{textblock}
+
+\begin{textblock}{6}(12,1)
+\tiny{~~~~~~~~~Sponsored by:}\\
+\includegraphics[width=2.2cm, trim=0 0 0 0]{figures/RConsortium_Horizontal_Pantone.png}
+\end{textblock}
+
+\begin{textblock}{6}(1,.5)
+\includegraphics[width=1.5cm, trim=0 0 0 0]{figures/trug-hex-800.png}
+\end{textblock}
+
+\end{frame}
+
+\small{
+
+
+\begin{frame}[t]
+\frametitle{Group communication/GitHub}
+Reminder: we are now a GitHub Organization {\tiny\href{https://github.com/TampaUseRs}{(https://github.com/TampaUseRs)}}\\
+\si{We're using this preferentially over Meetup for communications, etc}
+\si{Within this Org, we have a site {\tiny\href{https://tampausers.github.io/}{(https://tampausers.github.io/)}}}
+\si{See instructions on landing page for joining and getting to}
+\sicont{discussion/project boards}
+\begin{center}
+\includegraphics[scale=.25, trim=0 0 0 0]{figures/webshot.png}
+\end{center}
+\end{frame}
+
+\begin{frame}[t]
+\frametitle{Group communication/GitHub}
+We are actively discussing topics here:\\
+\si{{\tiny\href{https://github.com/orgs/TampaUseRs/teams/everyone}{https://github.com/orgs/TampaUseRs/teams/everyone}}}
+\begin{center}
+\includegraphics[scale=.25, trim=0 0 0 0]{figures/teampage.png}
+\end{center}
+\end{frame}
+
+\begin{frame}[t]
+\frametitle{Group communication/GitHub}
+The Projects pane: job postings, other announcements, future talks\\
+\begin{center}
+\includegraphics[scale=.25, trim=0 0 0 1cm]{figures/projectpage.png}
+\end{center}
+\end{frame}
+
+\begin{frame}[t]
+\frametitle{Twitter}
+Follow each other! \\
+\si{DM/follow @UseRTampa for a follow from the group}
+\si{We're compiling a Twitter List of members to make this easier}
+\begin{center}
+\includegraphics[scale=.2, trim=0 .5cm 0 .5cm]{figures/twitterlist.png}
+\end{center}
+We continue to grow!\\
+\begin{center}
+\includegraphics[scale=.25, trim=0 .5cm 0 0]{figures/members.png}
+\end{center}
+Lastly, if you want to present next/future month, please let us know!\\
+\si{Or comment in the GitHub Org project board}
+\end{frame}
+}
+\end{document}
