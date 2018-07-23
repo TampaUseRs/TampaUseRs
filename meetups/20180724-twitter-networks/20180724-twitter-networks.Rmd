@@ -28,9 +28,12 @@ solarized_dark(
 
 # The plan
 
+- There is data provided (sort of), you need rtweet up and running to make it useful
+- check out data directory on github, then instructions in Rmd
 - why use twitter vs other social platforms?
 - what do we mean by a network, and key jargon phrases
 - the meat, using rtweet to identify social relationships in twitter
+
 
 ---
 
@@ -90,4 +93,8 @@ plot(g)
 ---
 # Demo Time
 
+- highlights/lowlights
+- network in 4 readable lines of code
+- static and interactive visualization
+- some other common social medial analyses like sentiment analysis and some garbo influence metric
 ---
