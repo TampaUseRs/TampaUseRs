@@ -1,5 +1,6 @@
 # TampaUseRs
 
+[webpage]: https://tampausers.github.io/
 [meetup]: https://www.meetup.com/Tampa-R-Users-Group/
 [twitter]: https://www.twitter.com/UseRTampa/
 
@@ -7,6 +8,8 @@
 a repository for slides, code, and other materials for the Tampa R Users Group
 
 ## TampaUseRs Links
+
+- [TampaUseRs Home Page][webpage]
 
 - [Meetup][meetup]
 
