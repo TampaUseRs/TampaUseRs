@@ -50,4 +50,18 @@ github_pkgs <- c(
 )
 
 devtools::install_github(github_pkgs)
+
+cran_optional_pkgs <-c(
+  "extrafont",
+  "cowplot",
+  "tidytext",
+  "RColorBrewer",
+  "wordcloud",
+  "graphTweets",
+  "sigmajs",
+  "igraph",
+  "hms"
+)
+
+install.packages(cran_optional_pkgs)
 ```
