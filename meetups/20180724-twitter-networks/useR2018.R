@@ -23,20 +23,13 @@ knitr::opts_chunk$set(echo = TRUE)
 #' anyone that is interested in methodology.
 #'
 #' The network vis also samples from a notebook from a cool biologist Kenneth
-#' Turner, check out his [notebook](https://khturner.shinya
-#' pps.io/HashtagISME16/)
+#' Turner, check out his [notebook](https://khturner.shinyapps.io/HashtagISME16/)
 #'
 #' He (Kearney)'s the author of rtweet, so often there's a bit more of the
 #' details sprinkled throughout the analysis.
 #'
-#'
-#'
 #' I first saw this clean automated divide of the full data and a separate
 #' sharable dataset of tweet ids in Mike Kearney's rstudioconf_tweets
-#'
-#'
-#'
-#'
 #'
 ## ----retrieve------------------------------------------------------------
 install.packages("devtools")
