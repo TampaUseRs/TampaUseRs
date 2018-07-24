@@ -1,0 +1,637 @@
+---
+title: "useR2018 twitter analysis"
+author: "Thomas E. Keller"
+date: "July 23, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r making xpdf, eval=FALSE}
+#ignore this, making pdf slides out of xaringan talk
+library(webshot)
+install_phantomjs()
+file_name <- paste0("file://", normalizePath("20180724-twitter-networks.html",winslash="/"))
+webshot(file_name, "20180724-twitter-networks.pdf")
+
+#also ignore, converting this Rmd to straight R for those that don't want any of the cruft exposition.
+knitr::purl("useR2018.Rmd", documentation = 2)
+styler::style_file("useR2018.R")
+
+#Work in progress, this is a pain in windows, since I'm not running in
+```
+
+
+
+# Retweeting tweets from #Rusers conference 2018
+
+The current new "state of the art" for retweeting and manipulating twitter data in the R world is [rtweet](http://rtweet.info/), which is what we'll use today. It has a collection of good introducory vignettes if you'd like to learn more.
+
+The basic outline of code and analysis will be a mishmash of Mike Kearney's [Ruser2018 analysis](https://github.com/mkearney/rstudioconf_tweets) and my old NIPS2016 analysis. Kearney's analysis is quite good, I recommend it for anyone that is interested in methodology.
+
+The network vis also samples from a notebook from a cool biologist Kenneth Turner, check out his [notebook](https://khturner.shinya pps.io/HashtagISME16/)
+
+He (Kearney)'s the author of rtweet, so often there's a bit more of the details sprinkled throughout the analysis.
+
+
+
+I first saw this clean automated divide of the full data and a separate sharable dataset of tweet ids in Mike Kearney's rstudioconf_tweets
+
+
+
+
+
+```{r retrieve}
+install.packages('devtools')
+
+devtools::install_github("hadley/tidyverse")
+devtools::install_github("mkearney/chr")
+devtools::install_github("mkearney/rtweet")
+#devtools::install_github("JohnCoene/graphTweets") These are cool, won't use 
+#automates making networks from tweets
+#devtools::install_github("JohnCoene/sigmajs") cool, won't use
+install.packages("visNetwork")
+install.packages('syuzhet') #sentiment analysis
+library(rtweet)
+
+searchfield <- c("#user2018", "user2018", "@useR2018_conf", "user2018_conf")
+
+if (file.exists(file.path("data", "search.rds"))){
+  since_id <- readRDS(file.path("data", "search.rds"))
+
+  since_id <- since_id$status_id[1]
+} else {
+  since_id <- NULL
+}
+
+## search for up to 100,000 tweets mentionging smbe
+rt <- search_tweets(
+  paste(searchfield, collapse = " OR "),
+  n = 1e5, verbose = FALSE,
+  since_id = since_id,
+  retryonratelimit = TRUE
+)
+
+## if there's already a search data file saved, then read it in,
+## drop the duplicates, and then update the `rt` data object
+if (file.exists(file.path("data", "search.rds"))) {
+
+  ## bind rows (for tweets AND users data)
+  rt <- do_call_rbind(
+    list(rt, readRDS(file.path("data", "search.rds"))))
+
+  ## determine whether each observation has a unique status ID
+  kp <- !duplicated(rt$status_id)
+
+  ## only keep rows (observations) with unique status IDs
+  users <- users_data(rt)[kp, ]
+
+  ## the rows of users should correspond with the tweets
+  rt <- rt[kp, ]
+
+  ## restore as users attribute
+  attr(rt, "users") <- users
+}
+
+## save the data
+saveRDS(rt, file.path("data", "search.rds"))
+
+## save shareable data (only status_ids)
+saveRDS(rt[, "status_id"], file.path("data", "search-ids.rds"))
+
+
+#if you only have the shareable data and want to recreate the data
+#may take awhile if there are a lot of tweets
+ids<-readRDS(file.path("data","search-ids.rds"))
+rt <-rtweet::lookup_tweets(ids$status_id)
+
+```
+
+```{r rtweet-graph}
+rt_g=filter(rt, retweet_count > 0) %>% 
+  
+  select(screen_name, retweet_screen_name) %>%
+  
+  filter(!is.na(retweet_screen_name)) %>% 
+  
+  graph_from_data_frame() 
+
+
+#relative simple function to take a quantile cutoff of the network to make plotting easier
+#take the 95% accounts with the highest degrees (connections)
+# V(graph) returns vertice name
+# induced_subgraph returns a new, smaller graph only the vertices you supply
+# here, the high degree ones
+# you could also, for example make an ego network
+
+deg_cutoff<-function(graph,q_cutoff=0.95){
+  dfv=data.frame(V=as.vector(V(rt_g)),screen_name=V(rt_g)$name,degree(rt_g))
+  names(dfv)[3]="degree"
+  dfv=cbind(dfv,quantile=cut(dfv$degree,breaks=quantile(dfv$degree,probs=c(0,q_cutoff,1)),
+                             labels=c("Bottom",'Top'),include.lowest=T))
+  dfv$quantile=as.character(dfv$quantile)
+  dfv2=arrange(dfv,desc(quantile))
+  dfv3=dfv2[dfv2$quantile=='Top',]
+  ndf <- rt %>% filter(screen_name %in% dfv3$screen_name)
+  red_gr_rt=induced_subgraph(rt_g,dfv3$V)
+  return(red_gr_rt)
+}
+
+rt_cut <-deg_cutoff(rt_g,.98)
+
+
+
+
+V(rt_cut)$node_label <- unname(ifelse(degree(rt_cut)[V(rt_cut)] > 30, names(V(rt_cut)), "")) 
+
+V(rt_cut)$node_size <- unname(ifelse(degree(rt_cut)[V(rt_cut)] > 30, degree(rt_cut), 0)) 
+
+rt_simp <-igraph::simplify(rt_cut,edge.attr.comb="sum")
+
+#identify clusters (many ways! just check out cluster_ and let it autocomplete...some are very slow)
+#most algorithms can't handle directed graphs as a warning. We've simplified the network already for plotting
+
+wt<-cluster_walktrap(rt_simp)
+V(rt_simp)$community <- wt$membership
+
+#my fonts are kinda messed up right now, you shouldn't need to do this
+library(extrafont)
+#kk is a standard physics minimizing model based on springs, kamada & kawai 1989
+p<-ggraph(rt_simp,layout ='kk') +
+  geom_edge_fan(edge_width=0.125,aes(alpha=..index..))+
+  geom_node_point(aes(size=degree(rt_simp),colour=factor(community))) +  scale_fill_brewer()+
+  geom_node_label(aes(label=node_label,size=node_size),repel=TRUE,family='serif',fontface="bold") +
+  theme_graph() + theme(legend.position='none')
+
+ggsave("ruser2018_net.png",p)
+
+
+# in practice, it's generally easier to plot large graphs with gephi (an external program)
+# check out the library rgexf for that
+
+
+#what can we do once we have clusters? go back to the rtweet data and see how different communities are talking about the topic. Do this by hand coding if data is small (yuck), or LDA (latent dirichlet allocation) for automated topic modeling
+
+#This approach will lay out the network as a circle, which sometimes make it easier to see relationships when you have a high number of connections (high activity networks like useR, rstudioConf)
+
+p<-ggraph(rt_cut, layout = 'linear', circular = TRUE) + 
+  
+  geom_edge_arc(edge_width=0.125, aes(alpha=..index..)) +
+  
+  geom_node_label(aes(label=node_label, size=node_size),
+                  
+                  label.size=0, fill="#ffffff66", segment.colour="springgreen",
+                  
+                  color="slateblue", repel=TRUE, family='serif', fontface="bold") +
+  
+  coord_fixed() +
+  
+  scale_size_area(trans="sqrt") +
+  
+  labs(title="Retweet Relationships", subtitle="Most retweeted screen names labeled. Darkers edges == more retweets. Node size == larger degree") +
+  
+  theme_graph(base_family=font_rc) +
+  
+  theme(legend.position="none")
+
+
+save_plot("ruser2018_network.png",p,base_aspect_ratio=1)
+
+```
+
+# interactive graphs with visNetwork
+
+```{r visNetwork}
+library(visNetwork)
+nodes=data.frame(id=names(V(rt_cut)),stringsAsFactors=FALSE,label=names(V(rt_cut)))
+nodes$group <-cluster_walktrap(rt_cut)$membership
+nodes$value <- page_rank(rt_cut)$vector
+el=as_edgelist(rt_cut)
+edges=data.frame(from=el[,1],to=el[,2])
+
+visNetwork(nodes,edges, width="100%", height="400px") %>%
+  visIgraphLayout()
+
+
+
+
+
+
+
+```
+
+
+
+
+# Initial vis
+
+Time series of the data in two hour chunks. One REALLY nice thing about rtweet is that it makes plotting the timeseries of tweet a completely lazy-person's function, ts_plot, where you can feed it the aggregation time to summarize over. Here, we go with 2 hour's as that seems like a good medium to begin with.
+
+
+```{r initvis}
+suppressPackageStartupMessages(library(tidyverse))
+p<-rt %>%
+  filter(created_at > "2018-07-09" ) %>%
+  ts_plot("2 hours", color = "transparent") +
+  geom_smooth(method = "loess", se = FALSE, span = .1,
+  size = 2, colour = "#0066aa") +
+  geom_point(size = 5,
+    shape = 21, fill = "#ADFF2F99", colour = "#000000dd") +
+  theme(axis.text = element_text(colour = "#222222"),
+        text=element_text('Roboto Condensed'),
+    plot.title = element_text(size = rel(1.2), face = "bold"),
+    plot.subtitle = element_text(size = rel(1.1)),
+    plot.caption = element_text(colour = "#444444")) +
+  labs(title = "Frequency of tweets about ruser2018 over time",
+    subtitle = "Twitter status counts aggregated using two-hour intervals",
+    caption = "\n\nSource: Data gathered via Twitter's standard `search/tweets` API using rtweet",
+    x = NULL, y = NULL)
+
+save_plot('ruser2018_ntweets.png',p,base_aspect_ratio = 1.5)
+
+
+# simplified for live demo
+
+p <- rt %>% 
+  filter(created_at > "2018-07-09") %>%
+  ts_plot("2 hours", color="transparent") +
+  geom_smooth(se=FALSE,span=.1) + geom_point(size=5) + labs(title="freq of tweets about ruser2018", subtitle="aggregated over 2hour intervals", caption="\n\nSource:Twitter search API using retweet")
+
+```
+
+
+
+# Sentiment analysis
+
+
+Again, another analysis I've done in the past, but here I'll use Mike Kearney's version simply to make my life a bit easier as it's mapping on to rtweet's data, and I haven't actually used the syuzhet, which is a commonly used sentiment analysis package.
+
+I could and probably should be doing even more involved text cleanup than this.
+
+```{r sentiment}
+
+rt$text2 <- chr::chr_remove_links(rt$text)
+rt$text2 <- chr::chr_remove_tabs(rt$text2)
+rt$text2 <-chr::chr_remove_ws(rt$text2)
+rt$text2 <- chr::chr_replace_nonascii(rt$text2)
+
+## estimate pos/neg sentiment for each tweet
+rt$sentiment <- syuzhet::get_sentiment(rt$text2, "syuzhet")
+
+## write function to round time into rounded var
+round_time <- function(x, sec) {
+  as.POSIXct(hms::hms(as.numeric(x) %/% sec * sec))
+}
+
+## plot by specified time interval (1-hours)
+p<-rt %>%
+  filter(created_at > "2018-07-09" ) %>%
+  mutate(time = round_time(created_at, 60 * 60)) %>%
+  group_by(time) %>%
+  summarise(sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  mutate(valence = ifelse(sentiment > 0L, "Positive", "Negative")) %>%
+  ggplot(aes(x = time, y = sentiment)) +
+  geom_smooth(method = "loess", span = .1,
+    colour = "#aa11aadd", fill = "#bbbbbb11") +
+  geom_point(aes(fill = valence, colour = valence), 
+    shape = 21, alpha = .6, size = 3.5) +
+  theme(legend.position = "none",
+        text=element_text(family='Roboto Condensed'),
+    axis.text = element_text(colour = "#222222"),
+    plot.title = element_text(size = rel(1.3), face = "bold"),
+    plot.subtitle = element_text(size = rel(1.1)),
+    plot.caption = element_text(colour = "#444444")) +
+  scale_fill_manual(
+    values = c(Positive = "#2244ee", Negative = "#dd2222")) +
+  scale_colour_manual(
+    values = c(Positive = "#001155", Negative = "#550000")) +
+  labs(x = NULL, y = NULL,
+    title = "Sentiment (valence) of ruser2018 tweets over time",
+    subtitle = "Mean sentiment of tweets aggregated in one-hour intervals",
+    caption = "\nSource: Data gathered using rtweet. Sentiment analysis done using syuzhet")
+
+save_plot('ruser2018_sent.png',p,base_aspect_ratio=1.5)
+
+#simplified version
+#still need a round function to aggregate
+round_time<-function(x,sec){
+  as.POSIXct(hms::hms(as.numeric(x) %/% sec*sec)) #modulo
+}
+
+#round time aggregates sentiment into one hour chunks
+library(cowplot)
+p <- rt %>% 
+  filter(created_at > "2018-07-09") %>%
+  mutate(time=round_time(created_at, 60* 60)) %>% 
+  ggplot(aes(x=time,y=sentiment)) +geom_smooth(span=.1) + theme_classic()
+  
+
+```
+
+
+```{influence-rudis}
+library(rtweet)
+library(hrbrthemes)
+library(tidyverse)
+
+influence_snapshot <- function(user, trans=c("log10", "identity")) {
+  
+  user <- user[1]
+  trans <- match.arg(tolower(trimws(trans[1])), c("log10", "identity"))
+  
+  user_info <- lookup_users(user)
+  
+  user_followers <- get_followers(user_info$user_id)
+  uf_details <- lookup_users(user_followers$user_id)
+  
+  primary_influence <- scales::comma(sum(c(uf_details$followers_count, user_info$followers_count)))
+  
+  filter(uf_details, followers_count > 0) %>% 
+    ggplot(aes(followers_count)) +
+    geom_density(aes(y=..count..), color="lightslategray", fill="lightslategray",
+                 alpha=2/3, size=1) +
+    scale_x_continuous(expand=c(0,0), trans="log10", labels=scales::comma) +
+    scale_y_comma() +
+    labs(
+      x="Number of Followers of Followers (log scale)", 
+      y="Number of Followers",
+      title=sprintf("Follower chain distribution of %s (@%s)", user_info$name, user_info$screen_name),
+      subtitle=sprintf("Follower count: %s; Primary influence/reach: %s\n source 21 twitter recipes by Bob Rudis (hrbrmstr)\n https://rud.is/books/21-recipes/crawling-followers-to-approximate-primary-influence.html", 
+                       scales::comma(user_info$followers_count),
+                       scales::comma(primary_influence))
+    ) +
+    theme_ipsum_rc(grid="XY") -> gg
+  
+  print(gg)
+  
+  return(invisible(list(user_info=user_info, follower_details=uf_details)))
+  
+}
+
+tgerke<-influence_snapshot("travisgerke")
+mkearney<-influence_snapshot("kearneymw")
+grk<-influence_snapshot("grrrck")
+
+```
+
+
+
+
+# Tweet busters
+
+So... Who are the top ranking tweeps currently?
+
+```{r toptw}
+
+showvals=rt %>% select(favorite_count,retweet_count,screen_name,name) %>%
+  group_by(screen_name,name) %>%
+  summarise(fav_count=sum(favorite_count),
+            rt_count=sum(retweet_count),
+            n=n()) %>% arrange(-n)
+
+knitr::kable(showvals[1:40,])
+
+# Includes both tweets and rtweets
+showvals[1:40,]  %>%
+  transform(screen_name = reorder(screen_name, n)) %>% 
+  ggplot(aes(screen_name, n))+ geom_bar(stat = "identity") + 
+  coord_flip() +
+  theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  labs(x=NULL,y=NULL,
+       title="Top 40 tweeters of useR2018")
+
+showvals=rt %>% filter(is_retweet==FALSE) %>%
+  select(favorite_count,retweet_count,screen_name,name) %>%
+  group_by(screen_name,name) %>%
+  summarise(fav_count=sum(favorite_count),
+            rt_count=sum(retweet_count),
+            n=n()) %>% arrange(-n)
+
+showvals[1:40,] %>%
+ transform(screen_name = reorder(screen_name, n)) %>% 
+  ggplot(aes(screen_name, n))+ geom_bar(stat = "identity") + 
+  coord_flip() +
+  theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  labs(x=NULL,y=NULL,
+       title="Top 40 retweeters of useR2018")
+```
+
+
+
+# Influence (dubious)
+
+Here is that somewhat (very) dumb influence metric I cooked up or adapted from elsewhere, I can't quite remember at this point. Either way I don't put much value in it. It's basically just the sum of favorites and retweets
+
+```{r influence}
+
+#part of default ggplot2 now
+#library(viridis)
+showvals2= showvals %>% mutate(impact = fav_count + rt_count) %>%
+  arrange(-impact)
+
+showvals2[1:40,] %>%
+  transform(screen_name = reorder(screen_name, impact)) %>%
+  ggplot(aes(screen_name, impact, fill = impact / n)) +
+  geom_bar(stat = "identity") +
+  coord_flip()+ ylab('Impact (numFavorites + numRetweets)') +
+  theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_viridis(trans = "log", breaks = c(1, 5, 10, 50))
+
+
+```
+
+
+
+
+
+
+# Still using the hated word cloud 
+
+The word cloud gets a bad rap, I mean, it IS basically impossible to intrepret in any numerical or comparative sense. But I do still find it useful to get a quick overview of just what types of things people are talking about. And thus, wordclouds we go.
+
+
+```{r wordcloud}
+
+library(tidytext)
+library(RColorBrewer)
+
+tidy_df = rt %>% unnest_tokens(word,text2)
+
+tw_stop<-data.frame(word=c("ESTRO37","estro37","rtt","n","24","30","1300","22","htt","60","5y","hdr","300","70","ht","f","jc","592","13","70","40","19","qt","06","45","r","37","42","50","9","b","hn","4d") ,lexicon='whatevs')
+stop_words=filter(stopwordslangs,(lang=='en' | lang=="es")  & p >.9999) %>% pull(word)
+stop_words=tibble(word=stop_words)
+
+tidy_cloud <- tidy_df %>%
+ anti_join(tw_stop) %>%
+  anti_join(stop_words)
+
+
+hm=tidy_cloud %>%
+ count(word)
+library(wordcloud)
+wordcloud(hm$word, hm$n,colors=brewer.pal(8,'Dark2'),random.order=FALSE,random.color=FALSE,min.freq=5,scale=c(4,.3),max.words=250)
+ 
+```
+
+
+<p align="center"><img width="100%" height="auto" src="wordplot_estro37.png" /></p>
+
+# Finally, the network
+
+OK, after all of the, what you actually really cared about was the network, right?
+
+```{r mention-graph}
+red_gr=induced_subgraph(m_graph,dfv3$V)
+
+#g=as_tbl_graph(red_gr) %>%
+#  mutate(pop=centrality_pagerank())
+
+#ggraph(g,layout='kk')+
+#  geom_edge_fan(aes(alpha=..index..),show.legend=FALSE) +
+#  geom_node_point(aes(size=pop),show.legend=FALSE) +geom_node_label(aes(label=name))+theme_graph()
+
+
+V(red_gr)$node_label <- unname(ifelse(degree(red_gr)[V(red_gr)] > 20, names(V(red_gr)), "")) 
+
+V(red_gr)$node_size <- unname(ifelse(degree(red_gr)[V(red_gr)] > 20, degree(red_gr), 0)) 
+
+
+
+ggraph(red_gr, layout = 'linear', circular = TRUE) + 
+  
+  geom_edge_arc(edge_width=0.125, aes(alpha=..index..)) +
+  
+  geom_node_label(aes(label=node_label, size=node_size),
+                  
+                  label.size=0, fill="#ffffff66", segment.colour="springgreen",
+                  
+                  color="slateblue", repel=TRUE, family=font_rc, fontface="bold") +
+  
+  coord_fixed() +
+  
+  scale_size_area(trans="sqrt") +
+  
+  labs(title="Mention Relationships", subtitle="Most mentioned screen names labeled. Darkers edges == more mentions. Node size == larger degree") +
+  
+  theme_graph(base_family=font_rc) +
+  
+  theme(legend.position="none")
+
+
+# retweet analysis
+
+rt_g=filter(rt, retweet_count > 0) %>% 
+  
+  select(screen_name, retweet_screen_name) %>%
+  
+  filter(!is.na(retweet_screen_name)) %>% 
+  
+  graph_from_data_frame() 
+
+
+
+deg_cutoff<-function(graph,q_cutoff=0.95){
+dfv=data.frame(V=as.vector(V(rt_g)),screen_name=V(rt_g)$name,degree(rt_g))
+names(dfv)[3]="degree"
+dfv=cbind(dfv,quantile=cut(dfv$degree,breaks=quantile(dfv$degree,probs=c(0,q_cutoff,1)),labels=c("Bottom",'Top'),include.lowest=T))
+dfv$quantile=as.character(dfv$quantile)
+dfv2=arrange(dfv,desc(quantile))
+dfv3=dfv2[dfv2$quantile=='Top',]
+ndf <- rt %>% filter(screen_name %in% dfv3$screen_name)
+red_gr_rt=induced_subgraph(rt_g,dfv3$V)
+return(red_gr_rt)
+}
+
+rt_cut <-deg_cutoff(rt_g)
+
+ndf <- rt %>% filter(screen_name %in% dfv3$screen_name)
+nrow(ndf %>% filter(!is.na(retweet_screen_name)))
+nrow(ndf %>% filter(is.na(retweet_screen_name)))
+
+red_gr_rt=induced_subgraph(rt_g,dfv3$V)
+
+
+
+V(red_gr_rt)$node_label <- unname(ifelse(degree(red_gr_rt)[V(red_gr_rt)] > 50, names(V(red_gr_rt)), "")) 
+
+V(red_gr_rt)$node_size <- unname(ifelse(degree(red_gr_rt)[V(red_gr_rt)] > 50, degree(red_gr_rt), 0)) 
+
+
+
+p<-ggraph(red_gr_rt, layout = 'linear', circular = TRUE) + 
+  
+  geom_edge_arc(edge_width=0.125, aes(alpha=..index..)) +
+  
+  geom_node_label(aes(label=node_label, size=node_size),
+                  
+                  label.size=0, fill="#ffffff66", segment.colour="springgreen",
+                  
+                  color="slateblue", repel=TRUE, family=font_rc, fontface="bold") +
+  
+  coord_fixed() +
+  
+  scale_size_area(trans="sqrt") +
+  
+  labs(title="Retweet Relationships", subtitle="Most retweeted screen names labeled. Darkers edges == more retweets. Node size == larger degree") +
+  
+  theme_graph(base_family=font_rc) +
+  
+  theme(legend.position="none")
+
+
+save_plot("ruser2018_network.png",p,base_aspect_ratio=1)
+  
+  
+ 
+```
+
+# graphTweets and SigmaJS
+
+Won't have time to talk about these packages I think, but for those interested, graphTweets automates the network making aspect and has some cool dynamic graph aspects that most other packages don't have (or not well at least)
+
+SigmaJS looks pretty good, which is how it handles the interactive plotting.
+
+```{r gt}
+library(graphTweets)
+library(sigmajs)
+rt %>% 
+  gt_edges(text, screen_name, status_id, "created_at") %>% 
+  gt_nodes() %>% 
+  gt_dyn() %>% 
+  gt_collect() -> net
+
+knitr::kable(head(net$edges))
+
+
+edges <- net$edges %>% 
+  dplyr::mutate( 
+    id = 1:n(),
+    created_at = as.numeric(created_at),
+    created_at = (created_at - min(created_at)) / (max(created_at) - min(created_at)),
+    created_at = created_at * 10000
+  )
+
+nodes <- net$nodes %>% 
+  dplyr::mutate(
+    id = source,
+    label = source,
+    size = n_edges
+  )
+
+# graph layout 
+l <- suppressMessages(sg_get_layout(nodes, edges))
+nodes$x <- l$x
+nodes$y <- l$y
+
+nodes <- sg_get_cluster(nodes, edges, colors = c("#2780e3", "#d3d3d3")) # cluster
+
+sigmajs() %>% 
+  sg_nodes(nodes, id, size, label, x, y, color) %>% 
+  sg_add_edges(edges, created_at, id, source, target, 
+               cumsum = FALSE) %>% 
+  sg_button("<i class='fa fa-play'></i>", "add_edges", class = "btn btn-primary") %>% 
+  sg_settings(defaultNodeColor = "#1967be")
+```
+
