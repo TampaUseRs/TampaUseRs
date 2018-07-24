@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r making xpdf}
+```{r making xpdf, eval=FALSE}
 #ignore this, making pdf slides out of xaringan talk
 library(webshot)
 install_phantomjs()
@@ -17,13 +17,8 @@ file_name <- paste0("file://", normalizePath("20180724-twitter-networks.html",wi
 webshot(file_name, "20180724-twitter-networks.pdf")
 
 #also ignore, converting this Rmd to straight R for those that don't want any of the cruft exposition.
-#Thanks Garrick
-# https://www.garrickadenbuie.com/blog/2017/10/17/convert-r-markdown-rmd-files-to-r-scripts/
-devtools::source_gist('284671997992aefe295bed34bb53fde6', filename = 'backstitch.R')
-source('backstitch.R')
-output<-backstitch("ruser.Rmd", output_type = 'script', chunk_header = "#+")
-out2<-paste("```r", output, "```", sep = "\n")
-readr::write_file(out2,"20180724-twitter-networks.R")
+knitr::purl("useR2018.Rmd", documentation = 2)
+styler::style_file("useR2018.R")
 
 #Work in progress, this is a pain in windows, since I'm not running in
 ```
@@ -480,7 +475,6 @@ wordcloud(hm$word, hm$n,colors=brewer.pal(8,'Dark2'),random.order=FALSE,random.c
  
 ```
 
-```{r mention-graph}
 
 <p align="center"><img width="100%" height="auto" src="wordplot_estro37.png" /></p>
 
@@ -488,7 +482,7 @@ wordcloud(hm$word, hm$n,colors=brewer.pal(8,'Dark2'),random.order=FALSE,random.c
 
 OK, after all of the, what you actually really cared about was the network, right?
 
-r
+```{r mention-graph}
 red_gr=induced_subgraph(m_graph,dfv3$V)
 
 #g=as_tbl_graph(red_gr) %>%
