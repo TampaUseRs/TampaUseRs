@@ -20,9 +20,9 @@ Vince Kegel is an independent Project Mgr consultant and is involved with the st
 ## Files
 
 
-- [Intro to TensorFlow.Keras.pdf](Intro to TensorFlow.Keras.pdf) contains the presentation slides
-- [MNIST - Demo.R](MNIST - Demo.R) contains a demonstration of TensorFlow and Keras on the MNIST data set.
-- [MNIST CNN.R](MNIST CNN.R) contains another demonstration using a convolutional neural network on the MNIST data set.
+- [Intro to TensorFlow.Keras.pdf](Intro%20to%20TensorFlow.Keras.pdf) contains the presentation slides
+- [MNIST - Demo.R](MNIST%20-%20Demo.R) contains a demonstration of TensorFlow and Keras on the MNIST data set.
+- [MNIST CNN.R](MNIST%20CNN.R) contains another demonstration using a convolutional neural network on the MNIST data set.
 
 ## Data
 
