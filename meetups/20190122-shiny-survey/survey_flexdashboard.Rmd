@@ -1,0 +1,445 @@
+---
+title: "Shiny Survey Instrument"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+runtime: shiny_prerendered
+---
+```{r, echo=FALSE}
+# The next 3 lines need to be added right after the YAML section for the shiny_prerendered runtime:
+# https://deanattali.com/shinyjs/advanced
+shiny::addResourcePath("shinyjs", system.file("srcjs", package = "shinyjs"))
+
+# https://stackoverflow.com/questions/25858196/r-shiny-webserver-on-a-local-server
+# options(shiny.port = 5940)
+# options(shiny.host = "192.168.86.146")
+```
+
+```{r, context="server"}
+shinyjs::useShinyjs(html = TRUE)
+```
+<script src="shinyjs/inject.js"></script>
+
+<!--
+Notes: 
+- User enters ID
+- If no data is found on the server, then user enters data/hours.
+- If data is found on the server, then the application updates with the user's last known individual data (hours) and the summaries of the other users data (comments/distribution)
+- Collect data from the user as they enter it.
+- Once a sufficient number of entries exist (4?) then start displaying 
+
+Presentation notes: 
+There is probably a lot more logging than would be necessary once this is "tested" but it was really only used once in its current form and I wanted lots of diagnostics. 
+
+$ sqlite3 survey.sqlite
+sqlite> .schema
+CREATE TABLE comments (
+  id INTEGER PRIMARY KEY,
+  code text NOT NULL,
+  question text NOT NULL,
+  comment text NOT NULL);
+CREATE INDEX comments_code ON comments (code);
+CREATE INDEX comments_question ON comments (question);
+  
+CREATE TABLE responses (
+code text PRIMARY KEY,
+sec1 real,  sec2 real);
+CREATE INDEX responses_code ON responses (code);
+
+CREATE TABLE responseTransactions (
+id INTEGER PRIMARY KEY,
+date TEXT,
+code TEXT NOT NULL,
+question TEXT NOT NULL,
+response REAL NOT NULL);
+
+INSERT INTO responses (code) VALUES ("a1");
+INSERT INTO responses (code) VALUES ("b2");
+INSERT INTO responses (code) VALUES ("c3");
+-->
+
+```{r setup, include=FALSE}
+
+library(shiny) #front/back end 
+library(flexdashboard) #UI Layout using a markdown notebook.
+library(tidyverse) #Grammar of data
+library(stringr) #String manipulaion
+library(futile.logger) #Logging regime
+# flog.threshold(INFO)
+flog.threshold(DEBUG)
+# flog.threshold(TRACE)
+flog.appender(appender.console())
+
+source("surveyFunctions.R") #Some external code to help keep things running smoothly.
+
+#Never could get this to work:
+tags$head(tags$link(rel="shortcut icon", href="www/favicon.ico")) 
+
+tags$script(src = "js/sendOnEnter.js") #!!!!!!!!!
+includeScript("js/bootstrap_navbar_resize.js")
+
+# Database Back End
+library(pool) #New fangled DB interface for Shiny.
+pool <- dbPool(drv = RSQLite::SQLite(), dbname = "survey.sqlite")
+
+# pool <- dbPool(
+#   drv = RMySQL::MySQL(),
+#   dbname = "shiny",
+#   host = "delphi-mysql.c6tadivebksv.us-east-2.rds.amazonaws.com",
+#   username = "surveyApplication",
+#   password = "@RMeetupTampa2019"
+# )
+
+# dbGetInfo(pool)
+# dbListTables(pool) # -->"comments", "responseTransactions", "responses"           
+
+onStop(function() {
+  poolClose(pool)
+  flog.info("Closing the pool object and releasing any open connections (hopefully).")
+})
+
+# Google Sheets Back End
+# library(googlesheets)
+# savedToken <- readRDS("googlesheets_token.rds")
+# gs_auth(token = savedToken, verbose = T)
+# config <- list()
+# config$googleSheet <- gs_title("Michigan_Delphi", verbose = TRUE)
+# config$exampleTable <- gs_read(config$googleSheet)
+# 
+# userRoster <<- config$exampleTable$code
+# saveRDS(userRoster, "userRoster.Rds")
+
+# Some basic UI style/settings.
+buttonWidth <- "70px"
+numericInputWidth <- "100px"
+textAreaWidth <- "400px"
+#How many responses do we need before showing the graphical distribution?
+responsesBeforePlotThreshold <- 2 
+
+#This function returns a UI HTML generation function that has some basic configurations already set.
+numericInputBox <- function(inputName){
+  return(textInput(inputId = inputName, 
+          label = NULL,
+          value = "",
+          width = numericInputWidth,
+          placeholder = "number"))
+}
+
+commentInputBox <- function(inputName){
+  return(textInput(inputId = inputName, #textAreaInput
+              label = NULL, 
+              width = textAreaWidth,
+              placeholder = "Enter comments here."))
+}
+
+densityPlotResponsive <- function(numericInput, responseCol, 
+                                  vlineChoice, userActive, poolHandle){
+  #Layer some responsive functionality on top of the density plotting functionality.
+  
+  responseVec <- getTableCol("responses", responseCol, poolHandle) %>% unlist
+  
+  show("showVline") #Use Shinyjs to unhide the checkbox.
+  vlineChoice <- ifelse(vlineChoice, numericInput, NA)
+  
+  flog.trace("densityPlotResponsive UserActive: %s", userActive)
+  
+  if(!is.na(numericInput) & userActive & length(responseVec) > responsesBeforePlotThreshold){
+    gg <- delphiDensityPlot(responseVec, userChoice = vlineChoice)
+    return(gg)
+  }
+  return()
+}
+
+postAllComments <- function(userActive, itemNumeric, itemName, poolHandle){
+  flog.trace("UserActive: %s, Item Hours: %s", userActive, itemNumeric)
+  if(is.null(itemNumeric)) return()
+  if(is.na(itemNumeric)) return()
+  
+  if(userActive){
+      return(tags$ul(map(getCommentVec(itemName, poolHandle), tags$li)))
+  }
+  return()
+}
+```
+
+```{r, context="server-start"}
+flog.info("App starting. Machine: %s, Process: %s", Sys.info()["nodename"], Sys.getpid())
+userRoster <- getTableCol("responses", "code", pool) %>% pull
+
+#The app should "activate" once the corrrect user ID has been entered.
+#These "global" reactive values allow the app to update (react) when something has changed on the remote server (this isn't a perfect solution if multiple servers are in use).
+globalReactives <- reactiveValues(newComment = NA_integer_, 
+                                  newResponse = NA_integer_) 
+```
+
+Inputs {.sidebar}
+=====================================  
+
+```{r}
+# Set up the UI sidebar.
+passwordInput(inputId = "userId", 
+              label = "Please enter your participant code:", 
+              width = "135px",
+              placeholder = "code")
+
+verbatimTextOutput("userActive") # placeholder = "None"
+
+conditionalPanel(condition = "false", {
+  checkboxInput("showVline", "Show my choice the figure distribution?")  
+  # hide("showVline")
+})
+
+# Provide guidance to interpret the CV score.
+cvGuidanceHTML <- "<ul>
+<li><b>0 < CoV ≤ 0.5: </b>Good degree of consensus. 
+Additional discussion <i>not necessary.</i></li>
+<li><b>0.5 < CoV ≤ 0.8: </b>Less than satisfactory degree of consensus. 
+Additional discussion <i>recommended.</i></li>
+<li><b>CoV > 0.8: </b>Poor degree of consensus.
+Additional discussion <i>critical.</i></li>
+</ul>"
+
+br();br();br() #Add some blank lines.
+uiOutput("CVguidance")
+```
+
+```{r, context="server"}
+library(shinyjs)
+jsToRun <- 'console.log("Console log test.");' #In case we need to debug using the JS browser in the console.
+runjs(jsToRun)
+
+# "Local" reactive values are specific to the user's individual app instance and control the app's behavior locally. These reactives serve two purposes: 
+# 1) Once the correct userID is populated, then the flag is used to "activate" other parts of the application to start updating.
+# 2) Once a sufficient number of responses have been received on the numeric variables, then the plotActive flag allows the plot to be displayed.
+localReactives <- reactiveValues(userId = NA_character_,
+                            flag = F, 
+                            plotActive = F) #TODO: Flip this on (at the appropriate time).
+
+# Monitor the userId element in the UI and "react" to changes.
+observeEvent(input$userId, {
+  
+  userId <- input$userId %>% #ignore case and surrounding whitespace.
+    str_to_lower %>% str_trim
+  
+  flog.trace("Input id: %s", userId) #Highly detailed (trace) logging of user inputs.
+  
+  if(userId %in% userRoster){
+    
+    localReactives$flag <- T
+    localReactives$userId <- userId
+    
+    flog.info("userId: %s activated.", userId)
+    
+    updateHourInput <- function(colName, response, sessionHandle){
+      inputName <- paste0(colName, "Numeric")
+      updateTextInput(sessionHandle, inputName, value = response) 
+    }
+    
+    userValues <- getUserRow("responses", userId, pool) %>% 
+      select(-code) %>% 
+      gather(col,response) %>% 
+      pwalk(updateHourInput, sessionHandle = session)
+    
+    # Set up scrolling on the main page:
+    scrollJs <- "$('.chart-stage').css({'overflow-y':'scroll'});"
+    runjs(scrollJs)
+  }
+})
+
+# Monitor the user active flag and provide notice to the user when a correct ID has been entered.
+output$userActive <- renderPrint({
+  
+  localReactives$userId
+  
+  if(localReactives$userId %in% userRoster){
+    # TODO: Can I inject some JS here? 
+    return(sprintf("Ready", localReactives$userId))
+  }
+})
+
+# Once the plot is displayed, then display the CV interpretation details.
+output$CVguidance <- renderUI({
+  if(localReactives$plotActive){
+    HTML(cvGuidanceHTML)
+  }
+})
+```
+
+Question 1 (Shutdown)
+=====================================
+## Question 1 flexdashboard panel
+
+**Explanation:** What is your best guess on how many total days the government shutdown will last?<br>
+
+Please enter a number:
+```{r}
+numericInputBox(inputName = "sec1Numeric")
+```
+
+```{r, context="server"}
+observeEvent(input$sec1Numeric, {
+  # For each entry, increment the global reactive variable by 1 (dropping NAs) - to trigger other behavior.
+  # TODO: pause a few seconds before accepting the input.
+  globalReactives$newResponse <<- sum(globalReactives$newResponse, 1, na.rm = T) 
+  storeResponse(localReactives, "sec1", input$sec1Numeric, pool)
+})
+```
+
+Please share any comments you have that describe why you made the above choice:
+```{r}
+span(
+  commentInputBox(inputName = "sec1Comment"), 
+  actionButton("sec1CommentButton", "Send", width = buttonWidth)
+)
+```
+
+```{r, context="server"}
+observe({ # Listen for input$send type changes (i.e., when the button is clicked)
+  input$sec1CommentButton
+  
+  if(!localReactives$flag) return()  #Don't do anything until the app is active.
+    
+  isolate({ #Use, but don't react when the reactive values below are updated.
+    
+    # Write the comment to the db, and update the reactive counter to get the other instances to display the new information.
+    if(nchar(input$sec1Comment)>0){
+      storeComment(localReactives$userId, "sec1", input$sec1Comment, pool)
+      globalReactives$newComment <<- sum(globalReactives$newComment, 1, na.rm = T)
+      flog.trace("User: %s comment logged. New comment count: %s", 
+                 localReactives$userId, globalReactives$newComment)
+    }
+  })
+  # Clear text entry input to get ready for the next comment.
+  updateTextInput(session, "sec1Comment", value="")
+})
+```
+
+### Distribution
+
+```{r}
+plotOutput("sec1Plot") #Display the plot/figure.
+```
+
+```{r, context="server"}
+# Distribution goes here. 
+output$sec1Plot <- renderPlot(height = 300, {
+  globalReactives$newResponse #Update the plot when any user enters a new number.
+  
+  gg <- densityPlotResponsive(numericInput = input$sec1Numeric,
+                              responseCol = "sec1",
+                              vlineChoice = input$showVline,
+                              userActive = localReactives$flag,
+                              poolHandle = pool)
+
+  if(length(gg)>0) localReactives$plotActive <- T
+  return(gg)
+})
+```
+
+Column {class = scrollColumn}
+-------------------------------------
+
+### Comments
+```{r}
+uiOutput("sec1CommentsAll")
+```
+
+```{r, context="server"}
+output$sec1CommentsAll <- renderUI({
+  globalReactives$newComment; localReactives$flag
+  flog.trace("App active update for sec1CommentsAll? New comment count: %s",
+             globalReactives$newComment)
+  postAllComments(localReactives$flag, input$sec1Numeric, "sec1", pool)
+})
+```
+
+Question 2 (Future of R)
+=====================================  
+## Question 2 flexdashboard panel
+**Explanation:** How many more years do you think R will retain its "dominance" as a data science language? 
+<br>
+
+Please enter a number: 
+```{r}
+numericInputBox(inputName = "sec2Numeric")
+```
+
+```{r, context="server"}
+observeEvent(input$sec2Numeric, {
+  # Increment by 1 (dropping NAs)
+  globalReactives$newResponse <<- sum(globalReactives$newResponse, 1, na.rm = T) 
+  storeResponse(localReactives, "sec2", input$sec2Numeric, pool)
+})
+```
+
+Please share any comments you have that describe why you made the above choice:
+```{r}
+span(
+  commentInputBox(inputName = "sec2Comment"), 
+  actionButton("sec2CommentButton", "Send", width = buttonWidth)
+)
+```
+
+```{r, context="server"}
+observe({ # Listen for input$send changes (i.e. when the button is clicked)
+  input$sec2CommentButton
+  
+  if(!localReactives$flag) return()  #Don't do anything until the app is active.
+    
+  isolate({
+    if(nchar(input$sec2Comment)>0){
+      storeComment(localReactives$userId, "sec2", input$sec2Comment, pool)
+      globalReactives$newComment <<- sum(globalReactives$newComment, 1, na.rm = T)
+      flog.trace("User: %s comment logged. New comment count: %s", 
+                 localReactives$userId, globalReactives$newComment)
+    }
+  })
+  # Clear text entry to get ready for the next comment.
+  updateTextInput(session, "sec2Comment", value="")
+})
+```
+
+### Distribution
+
+```{r}
+plotOutput("sec2Plot")
+```
+
+```{r, context="server"}
+#Distribution goes here. 
+output$sec2Plot <- renderPlot(height = 300, {
+  globalReactives$newResponse
+  
+  gg <- densityPlotResponsive(numericInput = input$sec2Numeric,
+                              responseCol = "sec2",
+                              vlineChoice = input$showVline,
+                              userActive = localReactives$flag,
+                              poolHandle = pool)
+
+  if(length(gg)>0) localReactives$plotActive <- T
+  return(gg)
+})
+```
+
+Column {class = scrollColumn}
+-------------------------------------
+
+### Comments
+```{r}
+uiOutput("sec2CommentsAll")
+```
+
+```{r, context="server"}
+output$sec2CommentsAll <- renderUI({
+  globalReactives$newComment; localReactives$flag
+  flog.trace("App active update for sec2CommentsAll? New comment count: %s",
+             globalReactives$newComment)
+  postAllComments(localReactives$flag, input$sec2Numeric, "sec2", pool)
+})
+```
+
+```{r}
+## This needs to be at the end because.... ?
+includeCSS("css/survey.css")
+includeScript("js/sendOnEnter.js")
+```

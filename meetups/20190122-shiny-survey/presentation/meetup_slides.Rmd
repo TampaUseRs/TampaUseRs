@@ -1,0 +1,264 @@
+---
+title: "Shiny Survey Tool"
+author: "Dulani Woods"
+date: "January 22, 2019"
+output: 
+  ioslides_presentation:
+    widescreen: true
+---
+<style>
+.url {
+  font-size: 0.75em;
+}
+
+.venn img {
+  width: 400px;
+  height: 400px;
+  margin: 8px 8px;
+}
+</style>
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Who am I?
+
+<div class="columns-2">
+- Quantitative analyst at the RAND Corporation
+<div class="url"> rand.org/pubs/authors/w/woods_dulani.html </div>
+- Former Coast Guard officer
+- Peace Corps Volunteer (Republic of Georgia, 2005-2007)
+- Hobby (*and now professional*) coder
+
+- M.S. Agricultural Economics, Purdue University
+- B.S. Mechanical Engineering, U.S. Coast Guard Academy
+- B.S. Naval Architecture and Marine Engineering, U.S. Coast Guard Academy
+
+<div class="venn">
+![](Data_Science_venn_Drew_Conway.png)
+</div>
+<div class="url"> Source: drewconway.com/zia/2013/3/26/the-data-science-venn-diagram </div>
+</div>
+<!-- Depending on what I"m working on, I'm probably a the bottom ip of he data science "triangle." -->
+
+## What I use R for?
+
+### At work: 
+
+- Quickly manipulating (wrangling and munging) data
+- Quickly building models (simulation and predictive)
+- Visualizaions
+- <span class="red">**Facilitating focus groups using the "Delphi Method"** (we'll come back to this) </span>
+
+<!-- 
+- data wrangling
+- Models
+- 	COMPARE
+- 	TRANSPORT closure
+-		Alcohol
+
+- Swiss Army Knife for quickly addressing a lot of data based problems 
+- Glue code between other systems to quickly make a bigger "system" work 
+  - API, Word merge, etc.
+  - glue code
+-->
+
+### At home: 
+
+- Budgeting/accounting
+- Narrowing down a set of options for my kid's name from the SS database.
+- Fun: AdventOfCode.com/2018 **(my next meetup?)**
+<!-- My next meetup presentation? -->
+
+### What I don't really use it for: 
+
+- Slide show presentations (so, apologies because this one is a bit bland)
+
+## Today's "main ingredients"
+
+### R Shiny
+
+- A quick way (for R users) to build an interactive communication tool.
+- The key features are: 
+  - UI functions that "emit" HTML and JavaScript
+  - Back end functions that "listen" and which are "reactive" to inputs
+
+### R Markdown notebooks (.Rmd)
+
+- A self contained way to share results and methods
+
+## There are at least two types of interactive notebooks! 
+
+### Portable and interactive
+
+- Packages such as `plotly`, `C3`, `mapview`, and `DT` add limited interactivity while retaining the benefits of portability.
+
+### Shiny + R Markdown Notebooks = interactive notebooks
+--> `runtime: shiny`
+
+- Adding a Shiny "runtime" sacrifices some portability for additional interactivity.  
+- For some applications it can significantly simplify the code and the development process
+- One can very quickly build an interactive interface that can use existing R logic/code/packages
+
+### A 9 line demo
+```{r eval=FALSE, echo=TRUE}
+numericInput("num", "Enter a number:", 3) #Input
+renderText(paste("2 +", input$num, "=", 2+input$num)) #Interactive
+```
+
+See: `basic_interactive_notebook.Rmd`
+<!-- My story about Shiny opposition & colleagues' response -->
+
+## What is the Delphi Method?
+
+- A type of crowdsourcing developed at RAND in the 1950s
+- Useful for quickly producing low cost expert estimates of the future or other difficult to estimate quantities
+<div class="url"> rand.org/topics/delphi-method.html </div> 
+
+Key elements: 
+
+- anonymous inputs
+- examine group consensus
+- discuss/feedback
+- multiple rounds
+- push toward agreement?
+
+## Where have I used the Delphi Method?
+
+- Prioritizing research agendas: DOJ, DHS, DOD
+- Estimating case load requirements for public defenders in New York and Michigan
+
+My previous Delphi projects have used: 
+
+- Excel + email
+- Goggle forms + R
+- Qualtrics + R
+- Turning Point + queXML/queXF + R
+- Only R!
+
+## Longer Demo
+
+`survey_flexdashboard.Rmd`
+
+- URL: 
+
+## Why I built my own tool
+
+### Nothing I found or tried:
+- Allowed quick modification of questions
+- Facilitated complex math with multiplied responses and then the median of that product.
+- Custom visualizations
+- Opportunity to conduct a roundless (e.g., real time) Delphi
+
+## Basic structure:
+
+### My app: 
+
+- R Markdown notebook -> `flexdashboard` -> Pre-rendered
+- `tidyverse`!!!
+- Database connectivity for Shiny/Tidyverse: `pool`
+- Logging: `futile.logger`
+- `shinyapps.io` for load balancing
+- AWS RDS for persistent data, sqlite for local equivalent (and debugging)
+<!-- Make block diagram/graphic? -->
+
+### Simplified for this Meetup:
+I "simplified" it down to ~600 lines for the Meetup (450 notebook ~150 for supporting functions) so there is no reasonable way to cover all of it in any depth during this talk.
+
+## R Markdown Notebook
+
+- The full app is a bit more complex so to reduce load time, I selected the 'pre-rendered runtime'
+  - I believe it improved performance on the server's end, but adds a lot of development/code management complexity
+  - Pre-rendered: `runtime: shiny_prerendered`
+  - `context="server"` <- Needed in the chunk definitions for pre-rendering
+  
+- Custom javascript to adapt behavior (enter key and scrolling)
+- Custom CSS to affect the styling
+
+<!-- Adds a lot of quirkyness/complexity.  
+
+This project is complex enough that if I ultimately extend it for re-use, I'll probably build the UI directly in HTML or by using more modern static templating systems and "hook" it to Shiny on the back end.  
+
+I discovered the HTML front end + Shiny while troubleshooting all of the UI issues I ran into while building this: 
+
+__Build your entire UI with HTML__
+https://shiny.rstudio.com/articles/html-ui.html
+-->
+
+## Flexdashboard
+
+- Uses markdown to build an HTML dashboard
+- Row/column/sidebar structure
+- Can be used to make notebooks <i><b>without</b></i> Shiny
+<!-- - Add Graphic? -->
+
+## I used cloud services to serve the app with high reliability and scalability
+
+### Shinyapps.io
+
+- Auomatic load balancing (will automatically spin up extra instances)
+
+#### Problem: 
+
+- No good way to share data accross instances
+
+#### Solution: 
+
+### Amazon Web Services - Relational Database Service (AWS-RDS)
+
+- Automatic load balancing (will add resources to ensure responsiveness)
+
+#### Local solution: 
+
+- SQLite
+
+## Other supporting code (1 of 2): 
+
+### `library(pool)`:
+
+- Handles database connections more cleanly when there are LOTS of potential connections
+- shiny.rstudio.com/articles/pool-basics.html
+
+
+### `library(futile.logger)`:
+
+- User friendly way to produce a log for monitoring and debugging
+- Better than `message()`
+- *Way* better than `print()`
+
+## Other supporting code (2 of 2): 
+
+### `library(tidyverse)`:
+
+- dplyr, ggplot, magrittr, etc.
+<!-- 
+I've been using R since before R Studio and most of the Tidyverse packages... 
+Both have brought a true revolution to the language/ecosystem/profession!
+-->
+
+### Custom JavaScript (jQuery):
+
+- Used to add additional functionality
+- Hitting enter in the application to send comments
+- Auto-scrolling the comment box when comments begin to run off the screen 
+- See: `sendOnEnter.js`
+
+## Shiny hurdles
+
+Simple Shiny: 
+
+- `input()`
+- `reactive()`
+
+Complex Shiny: 
+
+- Need to "activate" the application (use global flags and observe())
+- Need to make local updates when remote users make changes
+- `reactiveValues()`
+
+## The End 
+
+<div class="centered"> **Questions?** </div>
+
+
+
