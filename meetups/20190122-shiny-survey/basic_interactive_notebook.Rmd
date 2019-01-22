@@ -1,0 +1,11 @@
+---
+title: VERY Basic Interactive Notebook
+output: html_document
+runtime: shiny
+---
+```{r, echo=FALSE}
+numericInput("num", "Enter a number:", 3) #Input
+renderText(paste("2 +", input$num, "=", 2+input$num)) #Interactive
+```
+
+Ready to rock and roll as an interactive website with only 9 lines!
