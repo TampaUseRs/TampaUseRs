@@ -1,0 +1,15 @@
+version: '2'
+
+services:
+  postgres:
+    build: ./Database
+    restart: always
+    ports:
+      - 5432:5432
+  api:
+    build: ./API
+    ports:
+      - 8080:80
+    restart: always
+    depends_on:
+      - postgres
