@@ -1,0 +1,199 @@
+---
+title: "Intro to Docker"
+author: "Kris Kindle"
+date: "2019/10/22"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+background-image: url(https://www.docker.com/sites/default/files/d8/2019-07/Moby-logo.png)
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+
+Image credit: [Docker]((https://www.docker.com/sites/default/files/d8/2019-07/Moby-logo.png)
+
+---
+
+# What is Docker?
+
+--
+
+- Docker is a container management engine
+
+--
+
+- Generates containers based on configuration files (Dockerfile)
+
+--
+
+- Docker runs on Linux, Windows, macOS
+
+
+
+---
+
+# What is a Container?
+
+--
+
+>A container is a standard unit of software that packages up code and all its dependencies so the application runs quickly and reliably from one computing environment to another. [1]
+
+--
+
+- TL;DR It is a self contained Environment to run code in
+
+
+.footnote[
+[1] (https://www.docker.com/resources/what-container)
+]
+
+---
+
+# A Picture is Worth Some Number of Words
+
+.pull-left[
+<img src="https://www.docker.com/sites/default/files/d8/2018-11/docker-containerized-appliction-blue-border_2.png" width=300 height=242>
+]
+
+.pull-right[
+<img src="https://www.docker.com/sites/default/files/d8/2018-11/container-vm-whatcontainer_2.png" width=300 height=242>
+]
+
+.footnote[
+[1] (https://www.docker.com/resources/what-container)
+]
+---
+
+# What Can I do With Containers?
+
+
+--
+
+- Use it to run a script with a particular version of a library
+
+--
+
+- Use a  pre-configured image to test new software
+
+--
+
+- Create a container for each piece of an Application
+
+--
+
+- Can be used in conjunction with a Cluster Manager (e.g. Docker Swarm or Kubernetes) to spin up extra copies of a container as load increases
+
+---
+
+# Getting Started with Docker
+
+--
+
+- For Windows and Mac users Docker Desktop is the suggested route
+
+--
+
+- For Linux users check your distributions repository for Docker
+
+--
+
+- Setup a DockerHub account as this is where we will be pulling images from
+
+---
+# Creating an Image with a Dockerfile
+
+--
+
+- Create a file named Dockerfile with no extension
+
+
+--
+
+- Build the image using
+```bash
+docker build -t image:name
+```
+--
+
+- Run the image using
+```bash
+docker run image:name
+```
+
+---
+# Some Dockerfile Configuration Options
+
+--
+
+- COPY: copy a file from the host into the contatiner
+
+--
+
+- VOLUME: attach a file folder as a shared volume between host and container
+
+--
+
+- RUN: run a command in the container. Can be used to extend the image by installing additional packages.
+
+--
+
+- ENV: Set environment variables in the container
+
+--
+
+- More info here (https://docs.docker.com/engine/reference/builder/)
+
+---
+# Create Mutliple Images with Docker-Compose
+
+--
+
+- Create a file docker-compose.yml in the projects root folder
+
+--
+
+- Create and configure a Dockerfile for each piece of the application
+
+--
+
+- Configure the docker-compose.yml file
+
+--
+
+- Navigate to the root folder of your project and run
+```bash
+docker-compose up --build
+```
+---
+# Configuring the Docker-Compose file
+
+--
+
+- Version: Select the version of the api to target
+
+--
+
+- Services: Define and name the different containers used in your app
+
+--
+
+    - Build: Folder where the Dockerfile is contained
+    - Restart: Should container restart
+    - Depends_on: The other services that this one needs to be up
+    - Ports: Map conatiner port to host port (Hostport:Containerport)
+
+--
+
+- More info here (https://docs.docker.com/compose/compose-file/)
+
+---
+class: center, middle
+
+# Questions?
